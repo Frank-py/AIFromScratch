@@ -18,6 +18,7 @@ class LossCategorialCrossentropy(Loss):
         # bei ln nicht negativ und darf nicht über eins weil negative wahrscheinlichkeit
         y_pred_clipped = np.clip(y_pred, 1e-7, 1 - 1e-7)
 
+        np.reshape()
         if len(y_true.shape) == 1:
             # y_true: hat indexes bsp: [1, 1, 2]
             # samples: [[p1, p2, p3], [p4, p5, p6], [p7, p8, p9]]
@@ -59,6 +60,42 @@ class ActivationSoftmax:
 
         self.output = probabilities
 
+    def backward(self, dvalues):
+
+        self.dinputs = np.empty_like(dvalues)
+
+        for index, (single_output, single_dvalues) in enumerate(zip(self.output, dvalues)):
+            # read page 222 for better understanding
+
+            #flatten output array should be one dimensional
+            single_output = single_output.reshape(-1, 1)
+            # derivative of softmax accounts for every output w.r.t its input
+            jacobian_matrix = np.diagflat(single_output) - np.dot(single_output, single_output.T)
+            # summarize into one value again
+            self.dinputs = np.dot(jacobian_matrix, single_dvalues)
+
+
+
+# this class combines softmax with loss making gradients easier to computer
+class ActivationSoftmaxLossCategoricalCrossentropy():
+    def __init__(self):
+        self.activation = ActivationSoftmax()
+        self.loss = LossCategorialCrossentropy()
+    def forward(self, inputs, y_true):
+        self.activation.forward(inputs)
+        self.output = self.activation.output
+        return self.loss.calculate(self.output, y_true)
+    def backward(self, dvalues, y_true):
+
+        samples = len(dvalues)
+
+        if len(y_true.shape) == 1:
+            y_true = np.argmax(y_true, axis=1)
+        self.dinputs = dvalues.copy()
+        self.dinputs[range(samples), y_true] -= 1
+        self.dinputs = self.dinputs / samples
+
+
 
 class ActivationReLU:
 
@@ -78,7 +115,7 @@ class LayerDense:
         self.biases = np.zeros((1, n_neurons))
 
     def backward(self, dvalues):
-        self.dweights = np.dot(self.weights.T, dvalues)
+        self.dweights = np.dot(self.inputs.T, dvalues)
         self.dbiases = np.sum(dvalues, axis=0, keepdims=True)
 
         self.dinputs = np.dot(dvalues, self.weights.T)
