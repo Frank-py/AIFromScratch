@@ -18,7 +18,6 @@ class LossCategorialCrossentropy(Loss):
         # bei ln nicht negativ und darf nicht über eins weil negative wahrscheinlichkeit
         y_pred_clipped = np.clip(y_pred, 1e-7, 1 - 1e-7)
 
-        np.reshape()
         if len(y_true.shape) == 1:
             # y_true: hat indexes bsp: [1, 1, 2]
             # samples: [[p1, p2, p3], [p4, p5, p6], [p7, p8, p9]]
@@ -37,8 +36,8 @@ class LossCategorialCrossentropy(Loss):
                 axis=1
             )
 
-            negative_log_likelihoods = -np.log(correct_confidences)
-            return negative_log_likelihoods
+        negative_log_likelihoods = -np.log(correct_confidences)
+        return negative_log_likelihoods
     def backward(self, dvalues, y_true):
         samples = len(dvalues)
 
@@ -89,7 +88,7 @@ class ActivationSoftmaxLossCategoricalCrossentropy():
 
         samples = len(dvalues)
 
-        if len(y_true.shape) == 1:
+        if len(y_true.shape) == 2:
             y_true = np.argmax(y_true, axis=1)
         self.dinputs = dvalues.copy()
         self.dinputs[range(samples), y_true] -= 1
@@ -107,6 +106,12 @@ class ActivationReLU:
         self.dinputs = dvalues.copy()
         self.dinputs[self.inputs <= 0] = 0
 
+class OptimizerSGD:
+    def __init__(self, learning_rate=1.0):
+        self.learning_rate = learning_rate
+    def update_params(self, layer):
+        layer.weights += -self.learning_rate * layer.dweights
+        layer.biases += -self.learning_rate * layer.dbiases
 
 class LayerDense:
 
@@ -122,3 +127,4 @@ class LayerDense:
 
     def forward(self, inputs):
         self.output = np.dot(inputs, self.weights) + self.biases
+        self.inputs = inputs
