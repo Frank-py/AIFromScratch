@@ -17,7 +17,7 @@ loss_activation = ActivationSoftmaxLossCategoricalCrossentropy()
 
 optimizer = OptimizerSGD()
 
-for epoch in range(10001):
+for epoch in range(10000):
     dense1.forward(X)
     activation1.forward(dense1.output)
     dense2.forward(activation1.output)
